@@ -24,8 +24,12 @@ deps = [
 
 mcp = FastMCP(MCP_SERVER_NAME, dependencies=deps)
 
+MCP_TOOL_PREFIX = os.getenv("MCP_TOOL_PREFIX")
+MCP_DB_DESCRIPTION = os.getenv("MCP_DB_DESCRIPTION")
 
-@mcp.tool()
+@mcp.tool(
+    name=MCP_TOOL_PREFIX+"list_databases",
+    description=f"List all databases in {MCP_DB_DESCRIPTION}")
 def list_databases():
     try:
         logger.info("Listing all databases")
@@ -65,7 +69,12 @@ def get_table_info(client, database: str, table: str):
         logger.error(f"Error getting table info: {err}")
         return {"error": str(err)}
 
-@mcp.tool()
+@mcp.tool(
+    name=MCP_TOOL_PREFIX+"list_tables",
+    description=f"""List all tables in {MCP_DB_DESCRIPTION} for a given database name and their schema.
+Also returns a list of columns and the CREATE TABLE query for each table.
+Specify 'like' parameter to filter tables by name.
+Omit the 'like' parameter or pass empty string to list all tables in the database.""")
 def list_tables(database: str, like: str = None):
     try:
         logger.info(f"Listing tables in database '{database}'")
@@ -92,7 +101,10 @@ def list_tables(database: str, like: str = None):
         logger.error(f"Error listing tables: {err}")
         return {"error": str(err)}
 
-@mcp.tool()
+@mcp.tool(
+    name=MCP_TOOL_PREFIX+"run_select_query",
+    description=f"Run a SELECT query on the {MCP_DB_DESCRIPTION}"
+)
 def run_select_query(query: str):
     try:
         logger.info(f"Executing SELECT query: {query}")
