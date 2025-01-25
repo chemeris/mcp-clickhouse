@@ -27,23 +27,19 @@ mcp = FastMCP(MCP_SERVER_NAME, dependencies=deps)
 
 @mcp.tool()
 def list_databases():
-    logger.info("Listing all databases")
-    client = create_clickhouse_client()
-    result = client.command("SHOW DATABASES")
-    logger.info(f"Found {len(result) if isinstance(result, list) else 1} databases")
-    return result
+    try:
+        logger.info("Listing all databases")
+        client = create_clickhouse_client()
+        result = client.command("SHOW DATABASES")
+        logger.info(f"Found {len(result) if isinstance(result, list) else 1} databases")
+        return result
+    except Exception as err:
+        logger.error(f"Error listing databases: {err}")
+        return {"error": str(err)}
 
 
-@mcp.tool()
-def list_tables(database: str, like: str = None):
-    logger.info(f"Listing tables in database '{database}'")
-    client = create_clickhouse_client()
-    query = f"SHOW TABLES FROM {database}"
-    if like:
-        query += f" LIKE '{like}'"
-    result = client.command(query)
-
-    def get_table_info(table):
+def get_table_info(client, database: str, table: str):
+    try:
         logger.info(f"Getting schema info for table {database}.{table}")
         schema_query = f"DESCRIBE TABLE {database}.`{table}`"
         schema_result = client.query(schema_query)
@@ -65,27 +61,42 @@ def list_tables(database: str, like: str = None):
             "columns": columns,
             "create_table_query": create_table_result,
         }
+    except Exception as err:
+        logger.error(f"Error getting table info: {err}")
+        return {"error": str(err)}
 
-    tables = []
-    if isinstance(result, str):
-        # Single table result
-        for table in (t.strip() for t in result.split()):
-            if table:
-                tables.append(get_table_info(table))
-    elif isinstance(result, Sequence):
-        # Multiple table results
-        for table in result:
-            tables.append(get_table_info(table))
+@mcp.tool()
+def list_tables(database: str, like: str = None):
+    try:
+        logger.info(f"Listing tables in database '{database}'")
+        client = create_clickhouse_client()
+        query = f"SHOW TABLES FROM {database}"
+        if like:
+            query += f" LIKE '{like}'"
+        result = client.command(query)
 
-    logger.info(f"Found {len(tables)} tables")
-    return tables
+        tables = []
+        if isinstance(result, str):
+            # Single table result
+            for table in (t.strip() for t in result.split()):
+                if table:
+                    tables.append(get_table_info(client, database, table))
+        elif isinstance(result, Sequence):
+            # Multiple table results
+            for table in result:
+                tables.append(get_table_info(client, database, table))
 
+        logger.info(f"Found {len(tables)} tables")
+        return tables
+    except Exception as err:
+        logger.error(f"Error listing tables: {err}")
+        return {"error": str(err)}
 
 @mcp.tool()
 def run_select_query(query: str):
-    logger.info(f"Executing SELECT query: {query}")
-    client = create_clickhouse_client()
     try:
+        logger.info(f"Executing SELECT query: {query}")
+        client = create_clickhouse_client()
         res = client.query(query, settings={"readonly": 1})
         column_names = res.column_names
         rows = []
