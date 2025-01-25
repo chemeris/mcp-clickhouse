@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import clickhouse_connect
 import os
 import logging
+import yaml
 
 
 MCP_SERVER_NAME = "mcp-clickhouse"
@@ -16,6 +17,12 @@ logger = logging.getLogger(MCP_SERVER_NAME)
 
 load_dotenv()
 
+CONFIG_FILE = os.getenv("CONFIG_FILE", "config.yml")
+
+config = {}
+with open(CONFIG_FILE, "r") as file:
+    config = yaml.safe_load(file)
+
 deps = [
     "clickhouse-connect",
     "python-dotenv",
@@ -24,8 +31,8 @@ deps = [
 
 mcp = FastMCP(MCP_SERVER_NAME, dependencies=deps)
 
-MCP_TOOL_PREFIX = os.getenv("MCP_TOOL_PREFIX")
-MCP_DB_DESCRIPTION = os.getenv("MCP_DB_DESCRIPTION")
+MCP_TOOL_PREFIX = config.get("mcp",{}).get("tool_prefix", "")
+MCP_DB_DESCRIPTION = config.get("mcp",{}).get("db_description", "ClickHouse")
 
 @mcp.tool(
     name=MCP_TOOL_PREFIX+"list_databases",
@@ -125,13 +132,13 @@ def run_select_query(query: str):
 
 
 def create_clickhouse_client():
-    host = os.getenv("CLICKHOUSE_HOST")
-    port = os.getenv("CLICKHOUSE_PORT")
-    username = os.getenv("CLICKHOUSE_USER")
+    host = config["db"]["host"]
+    port = config["db"]["port"]
+    username = config["db"]["username"]
     logger.info(f"Creating ClickHouse client connection to {host}:{port} as {username}")
     return clickhouse_connect.get_client(
         host=host,
         port=port,
         username=username,
-        password=os.getenv("CLICKHOUSE_PASSWORD"),
+        password=config["db"]["password"],
     )

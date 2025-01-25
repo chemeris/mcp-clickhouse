@@ -1,0 +1,9 @@
+db:
+  host: localhost
+  port: 8123
+  username: service.mcp
+  password: 
+
+mcp:
+  tool_prefix: clickhouse_
+  db_description: ClickHouse database
