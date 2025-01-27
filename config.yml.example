@@ -1,8 +1,10 @@
 db:
+  type: clickhouse  # or "postgres"
   host: localhost
-  port: 8123
-  username: service.mcp
-  password: 
+  port: 9000  # 5432 for postgres
+  username: default
+  password: your_password
+  database: postgres  # only needed for postgres
 
 mcp:
   tool_prefix: clickhouse_
